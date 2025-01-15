@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Video</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Preview Video</h1>
+<video width="640" height="480" controls>
+  <source id="videoSource" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+<br>
+<a id="downloadLink" download>Download Video</a>
+<script>
+  // 获取URL参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const filename = urlParams.get('filename');
+
+  // 设置视频源
+  const videoSource = document.getElementById('videoSource');
+  videoSource.src = `/uploads/${filename}`;
+
+  // 设置下载链接
+  const downloadLink = document.getElementById('downloadLink');
+  downloadLink.href = `/download/${filename}`;
+  downloadLink.textContent = `Download`;
+</script>
+</body>
+</html>

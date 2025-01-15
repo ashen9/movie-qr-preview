@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Video</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Upload Video</h1>
+<form id="uploadForm" enctype="multipart/form-data">
+    <input type="number" name="index" id="indexInput" placeholder="Enter index (1-1000)" min="1" max="1000" required>
+    <input type="file" name="file" id="fileInput" accept="video/*">
+    <button type="submit">Upload</button>
+</form>
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData();
+        var fileInput = document.getElementById('fileInput');
+        var indexInput = document.getElementById('indexInput');
+        formData.append('file', fileInput.files[0]);
+
+        fetch(`/upload?index=${indexInput.value}`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+</script>
+</body>
+</html>
