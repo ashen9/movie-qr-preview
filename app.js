@@ -3,6 +3,7 @@ const multer = require('multer');
 const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
+const OSS = require('ali-oss');
 
 const app = express();
 const PORT = 3000;
@@ -32,6 +33,13 @@ const storage = multer.diskStorage({
     }
 });
 
+const client = new OSS({
+    region: 'oss-cn-hangzhou', // 替换为你的OSS区域
+    accessKeyId: 'your_access_key_id', // 替换为你的AccessKey ID
+    accessKeySecret: 'your_access_key_secret', // 替换为你的AccessKey Secret
+    bucket: 'your_bucket_name' // 替换为你的存储桶名称
+});
+
 const upload = multer({ storage: storage });
 
 app.use(express.static('public'));
@@ -44,14 +52,22 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+        return res.status(400).json({error: 'No file uploaded'});
     }
-    // const filePath = path.join(UPLOAD_FOLDER, req.file.filename);
-    // const qrCodePath = generateQRCode(filePath);
-    // res.json({ message: 'File uploaded successfully', qr_code: qrCodePath });
-    res.json({ message: 'File uploaded successfully' });
+    const index = req.query.index;
+    if (!index) {
+        return res.status(400).json({error: 'Index is required'});
+    }
+    const filename = `video_${index}.mp4`;
+    try {
+        const result = await client.put(filename, req.file.buffer);
+        res.json({message: 'File uploaded successfully', url: result.url});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({error: 'Failed to upload file'});
+    }
 });
 
 function generateQRCode(filePath) {
@@ -68,29 +84,26 @@ function generateQRCode(filePath) {
     return qrCodePath;
 }
 
-app.get('/preview', (req, res) => {
+app.get('/preview', async (req, res) => {
     const filename = req.query.filename;
-    const filePath = path.join(UPLOAD_FOLDER, filename);
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-            // 文件不存在，返回特定的响应
-            res.sendFile(path.join(__dirname, 'public', 'waiting.html'));
-        } else {
-            // 文件存在，返回预览页面
-            res.sendFile(path.join(__dirname, 'public', 'preview.html'));
-        }
-    });
+    try {
+        const url = await client.signatureUrl(filename, {expires: 3600}); // 生成预览URL，有效期1小时
+        res.sendFile(path.join(__dirname, 'public', 'preview.html'), {url});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({error: 'Failed to generate preview URL'});
+    }
 });
 
-app.get('/download/:filename', (req, res) => {
+app.get('/download/:filename', async (req, res) => {
     const filename = req.params.filename;
-    res.download(path.join(UPLOAD_FOLDER, filename), (err) => {
-        if (err) {
-            res.status(500).send({
-                message: "Could not download the file. " + err,
-            });
-        }
-    });
+    try {
+        const url = await client.signatureUrl(filename, {expires: 3600}); // 生成下载URL，有效期1小时
+        res.redirect(url); // 重定向到下载URL
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({error: 'Failed to generate download URL'});
+    }
 });
 
 app.listen(PORT, () => {
