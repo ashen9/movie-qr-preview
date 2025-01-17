@@ -4,7 +4,7 @@ const path = require('path');
 
 const QR_CODE_FOLDER = 'qrcodes';
 const NUM_QR_CODES = 10;
-const BASE_URL = 'http://192.168.194.57:3000'; // 替换为你的实际域名或IP地址
+const BASE_URL = 'http://47.121.213.128:3000'; // 替换为你的实际域名或IP地址
 
 if (!fs.existsSync(QR_CODE_FOLDER)) {
     fs.mkdirSync(QR_CODE_FOLDER);
